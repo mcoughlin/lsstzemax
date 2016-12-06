@@ -23,7 +23,12 @@ def parse_commandline():
     """
     parser = optparse.OptionParser()
 
-    parser.add_option("-t","--type",default="lsst_nominal")
+    parser.add_option("-t","--type",default="lsst_zernike")
+    parser.add_option("-o","--output",default="noabberation")
+    parser.add_option("-a","--astigmatism",default=0.0,type=float)
+    parser.add_option("-d","--defocus",default=0.0,type=float)
+    parser.add_option("-c","--coma",default=0.0,type=float)
+    parser.add_option("--doPlots", action ="store_true", default=False)
 
     opts, args = parser.parse_args()
 
@@ -71,7 +76,7 @@ def many_grid_spots(ln, hxs, hys, dx, dy, wavenum=1):
 # Parse command line
 opts = parse_commandline()
 
-plotDir = os.path.join('C:\Users\CAD User\Desktop\lsstzemax\data',opts.type)
+plotDir = os.path.join('C:\Users\CAD User\Desktop\lsstzemax\data',opts.output)
 if not os.path.isdir(plotDir): os.mkdir(plotDir)
 
 ln = pyz.createLink() # create a DDE link object for communication
@@ -81,21 +86,16 @@ zfile = os.path.join('C:\Users\CAD User\Desktop\lsstzemax\zemax', '%s.zmx'%opts.
 ln.zLoadFile(zfile)
 # Surfaces in the sequential lens data editor
 ln.ipzGetLDE()
-# General System properties
+
+# Set astigmatism, coma. defocus
+ln.zSetSurfaceParameter(28,18,opts.defocus)
+ln.zSetSurfaceParameter(28,19,opts.astigmatism)
+ln.zSetSurfaceParameter(28,20,opts.astigmatism)
+ln.zSetSurfaceParameter(28,21,opts.coma)
+ln.zSetSurfaceParameter(28,22,opts.coma)
+
+# General System Properties
 ln.zGetSystem()
-
-ln.zSetSurfaceData(28,5,2500.00)
-
-
-for ii in range(100):
-    try:
-        val = ln.zGetSurfaceParameter(28,ii)
-        print ii, val
-    except:
-        pass
-
-ln.zGetSystem()
-print stop
 
 # Paraxial/ first order properties of the system
 ln.zGetFirst()
@@ -110,41 +110,6 @@ ln.ipzGetSystemAper()
 # information about the field definition
 ln.ipzGetFieldData()
 
-print stop
-
-# In[13]:
-
-hx = 0.0
-hy = 0.0
-spirals = 10 #100
-rays = 600   #6000
-(xu,yu,zu,intensityu) = ln.zSpiralSpot(hx,hy,1,spirals,rays)
-(xg,yg,zg,intensityg) = ln.zSpiralSpot(hx,hy,2,spirals,rays)
-(xr,yr,zr,intensityr) = ln.zSpiralSpot(hx,hy,3,spirals,rays)
-(xi,yi,zi,intensityi) = ln.zSpiralSpot(hx,hy,4,spirals,rays)
-(xz,yz,zz,intensityz) = ln.zSpiralSpot(hx,hy,5,spirals,rays)
-fig = plt.figure(facecolor='w')
-ax = fig.add_subplot(111)
-ax.set_aspect('equal')
-ax.scatter(xu,yu,s=5,c='blue',linewidth=0.35,zorder=20)
-ax.scatter(xg,yg,s=5,c='green',linewidth=0.35,zorder=21)
-ax.scatter(xr,yr,s=5,c='red',linewidth=0.35,zorder=22)
-ax.scatter(xi,yi,s=5,c='magenta',linewidth=0.35,zorder=23)
-ax.scatter(xz,yz,s=5,c='yellow',linewidth=0.35,zorder=24)
-ax.set_xlabel('x');ax.set_ylabel('y')
-fig.suptitle('Spiral Spot')
-ax.grid(color='lightgray', linestyle='-', linewidth=1)
-ax.ticklabel_format(scilimits=(-2,2))
-
-plt.show()
-plotName = os.path.join(plotDir,'spiral.png')
-plt.savefig(plotName)
-plotName = os.path.join(plotDir,'spiral.eps')
-plt.savefig(plotName)
-plotName = os.path.join(plotDir,'spiral.pdf')
-plt.savefig(plotName)
-plt.close()
-
 hxs, hys = np.linspace(-1.75,1.75,10), np.linspace(-1.75,1.75,10)
 [HXs,HYs] = np.meshgrid(hxs,hys)
 hxs, hys = HXs.flatten(), HYs.flatten()
@@ -153,27 +118,26 @@ dy = 0.1
 fovx, fovy, x, y = many_grid_spots(ln, hxs, hys, dx, dy, wavenum = 1)
 fov = np.sqrt(fovx**2 + fovy**2)
 
-fig = plt.figure(facecolor='w')
-ax = fig.add_subplot(111)
-ax.set_aspect('equal')
-plt.scatter(x,y,s=5,c=fov,linewidth=0.35,zorder=21)
-plt.xlabel('x [mm]')
-plt.ylabel('y [mm]')
-cbar = plt.colorbar()
-cbar.set_label('FOV [degrees]')
-plt.grid(color='lightgray', linestyle='-', linewidth=1)
-#ax.ticklabel_format(scilimits=(-2,2))
-plt.axis([-600,600,-600,600])
-
-plt.show()
-
-plotName = os.path.join(plotDir,'many_spots.png')
-plt.savefig(plotName)
-plotName = os.path.join(plotDir,'many_spots.eps')
-plt.savefig(plotName)
-plotName = os.path.join(plotDir,'many_spots.pdf')
-plt.savefig(plotName)
-plt.close()
+if opts.doPlots:
+    fig = plt.figure(facecolor='w')
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    plt.scatter(x,y,s=5,c=fov,linewidth=0.35,zorder=21)
+    plt.xlabel('x [mm]')
+    plt.ylabel('y [mm]')
+    cbar = plt.colorbar()
+    cbar.set_label('FOV [degrees]')
+    plt.grid(color='lightgray', linestyle='-', linewidth=1)
+    #ax.ticklabel_format(scilimits=(-2,2))
+    plt.axis([-600,600,-600,600])
+    plt.show()
+    plotName = os.path.join(plotDir,'many_spots.png')
+    plt.savefig(plotName)
+    plotName = os.path.join(plotDir,'many_spots.eps')
+    plt.savefig(plotName)
+    plotName = os.path.join(plotDir,'many_spots.pdf')
+    plt.savefig(plotName)
+    plt.close()
 
 filename = os.path.join(plotDir,'spots.dat')
 fid = open(filename,'w')
