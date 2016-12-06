@@ -74,8 +74,8 @@ def get_spots(ln):
     hxs, hys = np.linspace(-1.75,1.75,10), np.linspace(-1.75,1.75,10)
     [HXs,HYs] = np.meshgrid(hxs,hys)
     hxs, hys = HXs.flatten(), HYs.flatten()
-    dx = 0.1 
-    dy = 0.1 
+    dx = 0.5 
+    dy = 0.5 
     fovx, fovy, x, y = many_grid_spots(ln, hxs, hys, dx, dy, wavenum = 1)
     fov = np.sqrt(fovx**2 + fovy**2)
 
@@ -126,11 +126,11 @@ if opts.doPlots:
     plt.savefig(plotName)
     plt.close()
 
-filename = os.path.join(plotDir,'spots.dat')
-fid = open(filename,'w')
-for a,b,c,d,e,f in zip(fovx,fovy,x,y,x_original,y_original):
-    fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(a,b,c,d,e,f))
-fid.close()
+    filename = os.path.join(plotDir,'spots.dat')
+    fid = open(filename,'w')
+    for a,b,c,d,e,f in zip(fovx,fovy,x,y,x_original,y_original):
+        fid.write('%.10f %.10f %.10f %.10f %.10f %.10f\n'%(a,b,c,d,e,f))
+    fid.close()
 
 fovx_unique = np.unique(fovx)
 fovy_unique = np.unique(fovy)
@@ -144,7 +144,7 @@ for fox in fovx_unique:
         y_mean = np.nanmean(y[idx])
         x_original_mean = np.nanmean(x_original[idx])
         y_original_mean = np.nanmean(y_original[idx])
-        fid.write("%.5f %.5f %.5f %.5f %.5f %.5f\n"%(fox,foy,x_mean,y_mean,x_original_mean,y_original_mean))
+        fid.write("%.10f %.10f %.10f %.10f %.10f %.10f\n"%(fox,foy,x_mean,y_mean,x_original_mean,y_original_mean))
 fid.close()
 
 if opts.doPlots:
