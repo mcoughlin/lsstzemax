@@ -34,13 +34,6 @@ def parse_commandline():
 
     return opts
 
-def many_spots(ln, hxs,hys,wavenum=1,spirals=10,rays=600):
-    fovxs, fovys, xs, ys = np.array([]), np.array([]), np.array([]), np.array([])
-    for hx, hy in zip(hxs,hys):
-        (x,y,z,intensity) = ln.zSpiralSpot(hx,hy,wavenum,spirals,rays)
-        fovxs, fovys, xs, ys = np.append(fovxs,hx*np.ones((len(x),1))), np.append(fovys,hy*np.ones((len(y),1))), np.append(xs,x), np.append(ys,y)
-    return fovxs, fovys, xs, ys
-
 # Spot diagram analysis functions
 def zGridSpot(ln, hx, hy, waveNum, dx, dy, mode=0):
 
@@ -61,7 +54,10 @@ def zGridSpot(ln, hx, hy, waveNum, dx, dy, mode=0):
             z.append(rayTraceData[4])
             intensity.append(rayTraceData[11])
         else:
-            print("Raytrace Error")
+            x.append(np.nan)
+            y.append(np.nan)
+            z.append(np.nan)
+            intensity.append(np.nan)
             #exit()
             # !!! FIX raise an error here
     return (x, y, z, intensity)
@@ -72,6 +68,17 @@ def many_grid_spots(ln, hxs, hys, dx, dy, wavenum=1):
         (x,y,z,intensity) = zGridSpot(ln,hx,hy,wavenum,dx,dy,mode=0)
         fovxs, fovys, xs, ys = np.append(fovxs,hx*np.ones((len(x),1))), np.append(fovys,hy*np.ones((len(y),1))), np.append(xs,x), np.append(ys,y)
     return fovxs, fovys, xs, ys
+
+def get_spots(ln):
+    hxs, hys = np.linspace(-1.75,1.75,10), np.linspace(-1.75,1.75,10)
+    [HXs,HYs] = np.meshgrid(hxs,hys)
+    hxs, hys = HXs.flatten(), HYs.flatten()
+    dx = 0.1 
+    dy = 0.1 
+    fovx, fovy, x, y = many_grid_spots(ln, hxs, hys, dx, dy, wavenum = 1)
+    fov = np.sqrt(fovx**2 + fovy**2)
+
+    return fov, fovxs, fovys, xs, ys
 
 # Parse command line
 opts = parse_commandline()
@@ -84,8 +91,8 @@ ln = pyz.createLink() # create a DDE link object for communication
 zfile = os.path.join('C:\Users\CAD User\Desktop\lsstzemax\zemax', '%s.zmx'%opts.type)
 
 ln.zLoadFile(zfile)
-# Surfaces in the sequential lens data editor
-ln.ipzGetLDE()
+
+fov_original, fovxs_original, fovys_original, xs_original, ys_original = get_spots(ln)
 
 # Set astigmatism, coma. defocus
 ln.zSetSurfaceParameter(28,18,opts.defocus)
@@ -94,29 +101,7 @@ ln.zSetSurfaceParameter(28,20,opts.astigmatism)
 ln.zSetSurfaceParameter(28,21,opts.coma)
 ln.zSetSurfaceParameter(28,22,opts.coma)
 
-# General System Properties
-ln.zGetSystem()
-
-# Paraxial/ first order properties of the system
-ln.zGetFirst()
-# duplicate of zGetFirst() for use in the notebook
-ln.ipzGetFirst()
-# ... another example is the zGetSystemAper() that returns information about the aperture. 
-# The aperture type is retuned as a code which we might not remember always ...
-ln.zGetSystemAper()
-# ...with the duplicate, ipzGetSystemAper(), we can immediately know that
-# the aperture type is the Entrance Pupil Diameter (EPD)
-ln.ipzGetSystemAper()
-# information about the field definition
-ln.ipzGetFieldData()
-
-hxs, hys = np.linspace(-1.75,1.75,10), np.linspace(-1.75,1.75,10)
-[HXs,HYs] = np.meshgrid(hxs,hys)
-hxs, hys = HXs.flatten(), HYs.flatten()
-dx = 0.1
-dy = 0.1
-fovx, fovy, x, y = many_grid_spots(ln, hxs, hys, dx, dy, wavenum = 1)
-fov = np.sqrt(fovx**2 + fovy**2)
+fov, fovx, fovy, x, y = get_spots(ln)
 
 if opts.doPlots:
     fig = plt.figure(facecolor='w')
@@ -141,8 +126,8 @@ if opts.doPlots:
 
 filename = os.path.join(plotDir,'spots.dat')
 fid = open(filename,'w')
-for a,b,c,d in zip(fovx,fovy,x,y):
-    fid.write('%.5f %.5f %.5f %.5f\n'%(a,b,c,d))
+for a,b,c,d,e,f in zip(fovx,fovy,x,y,x_original,y_original):
+    fid.write('%.5f %.5f %.5f %.5f %.5f %.5f\n'%(a,b,c,d,e,f))
 fid.close()
 
 fovx_unique = np.unique(fovx)
@@ -153,9 +138,11 @@ fid = open(filename,'w')
 for fox in fovx_unique:
     for foy in fovy_unique:
         idx = np.intersect1d(np.where(fovx==fox)[0],np.where(fovy==foy)[0])
-        x_mean = np.mean(x[idx])
-        y_mean = np.mean(y[idx])
-        fid.write("%.5f %.5f %.5f %.5f\n"%(fox,foy,x_mean,y_mean))
+        x_mean = np.nanmean(x[idx])
+        y_mean = np.nanmean(y[idx])
+        x_original_mean = np.nanmean(x_original[idx])
+        y_original_mean = np.nanmean(y_original[idx])
+        fid.write("%.5f %.5f %.5f %.5f %.5f %.5f\n"%(fox,foy,x_mean,y_mean,x_original_mean,y_original_mean))
 fid.close()
 
 
