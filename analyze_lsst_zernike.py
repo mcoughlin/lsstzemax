@@ -28,6 +28,7 @@ def parse_commandline():
     parser.add_option("-a","--astigmatism",default=0.0,type=float)
     parser.add_option("-d","--defocus",default=0.0,type=float)
     parser.add_option("-c","--coma",default=0.0,type=float)
+    parser.add_option("-s","--spherical",default=0.0,type=float)
     parser.add_option("--doPlots", action ="store_true", default=False)
 
     opts, args = parser.parse_args()
@@ -78,7 +79,7 @@ def get_spots(ln):
     fovx, fovy, x, y = many_grid_spots(ln, hxs, hys, dx, dy, wavenum = 1)
     fov = np.sqrt(fovx**2 + fovy**2)
 
-    return fov, fovxs, fovys, xs, ys
+    return fov, fovx, fovy, x, y
 
 # Parse command line
 opts = parse_commandline()
@@ -92,7 +93,7 @@ zfile = os.path.join('C:\Users\CAD User\Desktop\lsstzemax\zemax', '%s.zmx'%opts.
 
 ln.zLoadFile(zfile)
 
-fov_original, fovxs_original, fovys_original, xs_original, ys_original = get_spots(ln)
+fov_original, fovx_original, fovy_original, x_original, y_original = get_spots(ln)
 
 # Set astigmatism, coma. defocus
 ln.zSetSurfaceParameter(28,18,opts.defocus)
@@ -100,6 +101,7 @@ ln.zSetSurfaceParameter(28,19,opts.astigmatism)
 ln.zSetSurfaceParameter(28,20,opts.astigmatism)
 ln.zSetSurfaceParameter(28,21,opts.coma)
 ln.zSetSurfaceParameter(28,22,opts.coma)
+ln.zSetSurfaceParameter(28,25,opts.spherical)
 
 fov, fovx, fovy, x, y = get_spots(ln)
 
