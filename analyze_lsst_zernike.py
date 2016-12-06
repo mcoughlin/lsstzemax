@@ -147,4 +147,29 @@ for fox in fovx_unique:
         fid.write("%.5f %.5f %.5f %.5f %.5f %.5f\n"%(fox,foy,x_mean,y_mean,x_original_mean,y_original_mean))
 fid.close()
 
+if opts.doPlots:
+    data_out = np.loadtxt(filename)
+    x_mean = data_out[:,2]
+    y_mean = data_out[:,3]
+    x_original_mean = data_out[:,4]
+    y_original_mean = data_out[:,5]
+
+    fig = plt.figure(facecolor='w')
+    ax = fig.add_subplot(111)
+    ax.set_aspect('equal')
+    plt.plot(x_mean,y_mean,'kx')
+    plt.plot(x_original_mean,y_original_mean,'bo')
+    plt.xlabel('x [mm]')
+    plt.ylabel('y [mm]')
+    plt.grid(color='lightgray', linestyle='-', linewidth=1)
+    #ax.ticklabel_format(scilimits=(-2,2))
+    plt.axis([-600,600,-600,600])
+    plt.show()
+    plotName = os.path.join(plotDir,'disp_spots.png')
+    plt.savefig(plotName)
+    plotName = os.path.join(plotDir,'disp_spots.eps')
+    plt.savefig(plotName)
+    plotName = os.path.join(plotDir,'disp_spots.pdf')
+    plt.savefig(plotName)
+    plt.close()
 
